@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'database.dart';
 import 'todo_item.dart';
 
 // unser TodoDialog ist ein StatefulWidget, weil wir die Eingaben
@@ -19,6 +21,9 @@ class _TodoDialogState extends State<TodoDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // Datenbank-Objekt holen
+    final db = Provider.of<TodoDatabase>(context);
+
     // der Dialog ist ein AlertDialog, der die Eingaben des Nutzers
     // abfragt und dann ein TodoItem zurückgibt
     return AlertDialog(
@@ -61,6 +66,7 @@ class _TodoDialogState extends State<TodoDialog> {
         // geschlossen
         TextButton(
           onPressed: () {
+            // Dialog schliessen
             Navigator.of(context).pop();
           },
           child: const Text("Abbrechen"),
@@ -70,8 +76,14 @@ class _TodoDialogState extends State<TodoDialog> {
         // zurückgegeben
         TextButton(
           onPressed: () {
+            // Eingaben in ein TodoItem verpacken
             var neu = TodoItem(text: eingabe, dauer: minuten);
-            Navigator.of(context).pop(neu);
+
+            // TodoItem in der Datenbank speichern
+            db.save(neu);
+
+            // Dialog schliessen
+            Navigator.of(context).pop();
           },
           child: const Text("Speichern"),
         ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:todoapp/database.dart';
 
 import 'todo_dialog.dart';
 import 'todo_item.dart';
@@ -14,46 +16,63 @@ class TodoList extends StatefulWidget {
 }
 
 class _TodoListState extends State<TodoList> {
-  // ein paar Beispiel-Einträge, damit die Liste nicht leer ist
-  var todoItems = [
-    TodoItem(text: "Hausaufgaben machen", dauer: 60),
-    TodoItem(text: "Kochen", dauer: 30),
-    TodoItem(text: "Einkaufen", dauer: 45, erledigt: true)
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final db = Provider.of<TodoDatabase>(context);
+
     return Scaffold(
-      // die Liste wird mit einem ListView.builder angezeigt
-      // sie bildet das Haupt-Widget unserer App
-      body: ListView.builder(
-        itemCount: todoItems.length, // Anzahl der Elemente
-        itemBuilder: (context, index) {
-          // hier wird jedes Element gebaut
+      // Der FutureBuilder wartet, bis die Datenbank geladen ist
+      body: FutureBuilder(
+        future: db.loadTodos(),
+        builder: (context, snapshot) {
+          // wenn die Datenbank noch nicht geladen ist, zeigen wir
+          // einen Lade-Indikator an
+          if (!snapshot.hasData) {
+            return const Center(
+              child:
+                  CircularProgressIndicator(), // Lade-Indikator, ein drehender Kreis
+            );
+          } else {
+            // wenn die Datenbank geladen ist, holen wir uns die Liste der TodoItems
+            var todoItems = snapshot.data as List<TodoItem>;
 
-          // wir holen uns das TodoItem aus der Liste
-          var todo = todoItems[index];
+            // die Liste wird mit einem ListView.builder angezeigt
+            // sie bildet das Haupt-Widget unserer App
+            return ListView.builder(
+              itemCount: todoItems.length, // Anzahl der Elemente
+              itemBuilder: (context, index) {
+                // hier wird jedes Element gebaut (CheckboxListTile)
 
-          // und bauen ein CheckboxListTile, das wir zurückgeben
-          return CheckboxListTile(
-            title: Text(
-              todo.text,
-              // wenn das TodoItem erledigt ist, wird der Text grau
-              style: TextStyle(
-                color: todo.erledigt ? Colors.grey : Colors.black,
-              ),
-            ),
-            subtitle: Text("${todo.dauer} Minuten"),
-            // der Wert der Checkbox ist das erledigt-Attribut des TodoItems
-            value: todo.erledigt,
-            // wenn sich der Wert der Checkbox ändert, wird das TodoItem
-            // aktualisiert
-            onChanged: (value) {
-              setState(() {
-                todo.erledigt = value!;
-              });
-            },
-          );
+                // wir holen uns das TodoItem aus der Liste
+                var todo = todoItems[index];
+
+                // und bauen ein CheckboxListTile, das wir zurückgeben
+                return CheckboxListTile(
+                  title: Text(
+                    todo.text,
+                    // wenn das TodoItem erledigt ist, wird der Text grau
+                    style: TextStyle(
+                      color: todo.erledigt ? Colors.grey : Colors.black,
+                    ),
+                  ),
+                  subtitle: Text("${todo.dauer} Minuten"),
+                  // der Wert der Checkbox ist das erledigt-Attribut des TodoItems
+                  value: todo.erledigt,
+                  // wenn sich der Wert der Checkbox ändert, wird das TodoItem
+                  // aktualisiert
+                  onChanged: (value) {
+                    setState(() {
+                      // Status ändern
+                      todo.erledigt = value!;
+
+                      // und in der Datenbank speichern
+                      db.save(todo);
+                    });
+                  },
+                );
+              },
+            );
+          }
         },
       ),
       // der FloatingActionButton wird unten rechts angezeigt
@@ -62,22 +81,12 @@ class _TodoListState extends State<TodoList> {
         onPressed: () async {
           // wenn der Button gedrückt wird, öffnen wir den Dialog
           // und warten, bis er geschlossen wird (await)
-          var neu = await showDialog<TodoItem>(
+          await showDialog<TodoItem>(
             context: context,
             builder: (context) {
               return const TodoDialog();
             },
           );
-
-          // wenn der Nutzer den Dialog mit "Speichern" geschlossen hat,
-          // wird das neue TodoItem der Liste hinzugefügt
-          if (neu != null) {
-            // setState sorgt dafür, dass sich die Liste neu aufbaut
-            setState(() {
-              // hier wird das neue TodoItem der Liste hinzugefügt
-              todoItems.add(neu);
-            });
-          }
         },
       ),
     );

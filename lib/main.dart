@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:todoapp/database.dart';
 import 'todo_list.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
   // hier startet unsere App
-  runApp(const MyApp());
+  // Wir stellen den Datenbank-Zugriff mit "Provider" bereit
+  runApp(ChangeNotifierProvider(
+    create: (context) => TodoDatabase(),
+    child: const MyApp(),
+  ));
 }
 
 // Das Haupt-Widget unserer App - macht aber nicht viel:
